@@ -17,20 +17,20 @@ TYPE barcode_list_r IS RECORD(
 TYPE barcode_list_t IS
 TABLE OF barcode_list_r;
 
--- отримання токена --
+-- РѕС‚СЂРёРјР°РЅРЅСЏ С‚РѕРєРµРЅР° --
 function get_token(
     v_jur number, 
     v_param varchar2, 
     v_dev varchar2
 )return varchar2;
 
--- отримання налаштувань --
+-- РѕС‚СЂРёРјР°РЅРЅСЏ РЅР°Р»Р°С€С‚СѓРІР°РЅСЊ --
 function get_jur_info(
     v_jur number, 
     v_param varchar2
 )return varchar2;
 
--- формування URL --
+-- С„РѕСЂРјСѓРІР°РЅРЅСЏ URL --
 function get_url(
     v_type varchar2,
     v_app_name varchar2,
@@ -39,59 +39,59 @@ function get_url(
     v_token varchar2 default null
 )return varchar2;
 
--- завантаження довідника областей
+-- Р·Р°РІР°РЅС‚Р°Р¶РµРЅРЅСЏ РґРѕРІС–РґРЅРёРєР° РѕР±Р»Р°СЃС‚РµР№
 procedure load_region(
     v_manual_clob in clob default null
 );
 
--- завантаження довідника регіонів
+-- Р·Р°РІР°РЅС‚Р°Р¶РµРЅРЅСЏ РґРѕРІС–РґРЅРёРєР° СЂРµРіС–РѕРЅС–РІ
 procedure load_district_by_region(
     v_region_id in varchar2, 
     v_manual_clob in clob default null
 );
 
--- завантаження довідника міст
+-- Р·Р°РІР°РЅС‚Р°Р¶РµРЅРЅСЏ РґРѕРІС–РґРЅРёРєР° РјС–СЃС‚
 procedure load_city_by_district(
     v_district_id in varchar2, 
     v_manual_clob in clob default null
 );
 
--- завантаження довідника вулиць
+-- Р·Р°РІР°РЅС‚Р°Р¶РµРЅРЅСЏ РґРѕРІС–РґРЅРёРєР° РІСѓР»РёС†СЊ
 procedure load_street_by_city(
     v_city_id in varchar2, 
     v_manual_clob in clob default null
 );
 
--- завантаження довідника відділень
+-- Р·Р°РІР°РЅС‚Р°Р¶РµРЅРЅСЏ РґРѕРІС–РґРЅРёРєР° РІС–РґРґС–Р»РµРЅСЊ
 procedure load_branch_by_city(
     v_city_id in varchar2, 
     v_manual_clob in clob default null
 );
 
--- завантаження повного довідника регіонів
+-- Р·Р°РІР°РЅС‚Р°Р¶РµРЅРЅСЏ РїРѕРІРЅРѕРіРѕ РґРѕРІС–РґРЅРёРєР° СЂРµРіС–РѕРЅС–РІ
 procedure load_district;
 
--- завантаження повного довідника міст
+-- Р·Р°РІР°РЅС‚Р°Р¶РµРЅРЅСЏ РїРѕРІРЅРѕРіРѕ РґРѕРІС–РґРЅРёРєР° РјС–СЃС‚
 procedure load_city;
 
--- завантаження повного довідника вулиць
+-- Р·Р°РІР°РЅС‚Р°Р¶РµРЅРЅСЏ РїРѕРІРЅРѕРіРѕ РґРѕРІС–РґРЅРёРєР° РІСѓР»РёС†СЊ
 procedure load_street;
 
--- завантаження повного довідника відділень
+-- Р·Р°РІР°РЅС‚Р°Р¶РµРЅРЅСЏ РїРѕРІРЅРѕРіРѕ РґРѕРІС–РґРЅРёРєР° РІС–РґРґС–Р»РµРЅСЊ
 procedure load_branch;
 
--- отриматти список будівль вулиці
+-- РѕС‚СЂРёРјР°С‚С‚Рё СЃРїРёСЃРѕРє Р±СѓРґС–РІР»СЊ РІСѓР»РёС†С–
 function get_house_list(
     v_street_id in varchar2
 ) RETURN list_t pipelined;
 
--- отримати список індексів, вулиці
+-- РѕС‚СЂРёРјР°С‚Рё СЃРїРёСЃРѕРє С–РЅРґРµРєСЃС–РІ, РІСѓР»РёС†С–
 function get_index(
     v_street_id in varchar2, 
     v_housenumber in varchar2
 ) RETURN varchar2;
 
--- створити адресу доставки --
+-- СЃС‚РІРѕСЂРёС‚Рё Р°РґСЂРµСЃСѓ РґРѕСЃС‚Р°РІРєРё --
 function create_adresses (
     v_jur number,
     v_region_id varchar2, 
@@ -102,7 +102,7 @@ function create_adresses (
     v_postcode varchar2
 ) return number;
 
--- створити відправника --
+-- СЃС‚РІРѕСЂРёС‚Рё РІС–РґРїСЂР°РІРЅРёРєР° --
 procedure create_sender (
     v_jur number,
     v_name varchar2,
@@ -130,7 +130,7 @@ procedure edit_sender (
     v_uuid varchar2
 );
 
--- створити отримувача --
+-- СЃС‚РІРѕСЂРёС‚Рё РѕС‚СЂРёРјСѓРІР°С‡Р° --
 function create_recepient (
     v_jur number,
     v_first_name varchar2,

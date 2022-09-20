@@ -1,6 +1,6 @@
 create or replace PACKAGE body ukr_api AS
 
---------\ Get token from settings /--------
+--------\ Отримання токена /--------
 function get_token(
     v_jur number, 
     v_param varchar2, 
@@ -15,7 +15,7 @@ begin
     return v_token;
 end get_token;
 
---------\ Formation URL /--------
+--------\ Формування URL /--------
 function get_url(
     v_type varchar2,
     v_app_name varchar2,
@@ -50,7 +50,7 @@ begin
     return v_url;
 end get_url;
 
---------\ Get bank info /--------
+--------\ Отримання налаштувань /--------
 function get_jur_info(
     v_jur number, 
     v_param varchar2
@@ -84,7 +84,7 @@ begin
 end get_jur_info;
 
 
---------\ load regions /--------
+--------\ завантаження довідника областей /--------
 procedure load_region(
     v_manual_clob in clob default null
 ) as
@@ -97,10 +97,10 @@ procedure load_region(
     v_jur number := 481;
     v_url varchar2(1000);
 begin  
-    -- get access token
+    -- беремо токен доступу
     v_token := ukr_api.get_token(v_jur=>v_jur, v_param=>'BEARER eCom', v_dev=>v_dev);
     
-    -- ������� ����� ��� �����������
+    -- записуєм хедер для авторизації
     apex_web_service.g_request_headers.DELETE();
     apex_web_service.g_request_headers(1).name := 'Accept';
     apex_web_service.g_request_headers(1).value := 'application/json';
@@ -110,7 +110,7 @@ begin
     if v_manual_clob is not null then
         v_resp := v_manual_clob;
     else
-        -- ������ url
+        -- формуєм url
         v_url := ukr_api.get_url(
             v_type => 'main',
             v_app_name => 'address-classifier-ws',
@@ -118,20 +118,20 @@ begin
             v_dev => 'N'
         );
         
-        -- ������ �����
+        -- робимо запит
         v_resp := apex_web_service.make_rest_request(
             p_url => v_url, 
             p_http_method => 'GET'
         );
     end if;
     
-    -- ������� ���������
+    -- парсимо результат
     apex_json.parse(tv, v_resp);
     
-    -- ������� ������� �������� ������
+    -- зчитуємо кількість елементів масиву
     v_cnt := apex_json.get_count(p_path => 'Entries.Entry',p_values => tv);
     
-    -- ����������� ������ �����
+    -- поелементно зчитуєм масив
     for i in 1..nvl(v_cnt,0) loop
         r_region.REGION_ID := apex_json.get_varchar2(p_path => 'Entries.Entry[%d].REGION_ID', p0 => i, p_values => tv);
         r_region.REGION_UA := apex_json.get_varchar2(p_path => 'Entries.Entry[%d].REGION_UA', p0 => i, p_values => tv);
@@ -140,7 +140,7 @@ begin
         r_region.REGION_KOATUU := apex_json.get_varchar2(p_path => 'Entries.Entry[%d].REGION_KOATUU', p0 => i, p_values => tv);
         r_region.REGION_RU := apex_json.get_varchar2(p_path => 'Entries.Entry[%d].REGION_RU', p0 => i, p_values => tv);
         
-        -- ���������� �� ��������� ���� ������ 
+        -- перевіряємо на наявність такої області 
         select count(*) into v_cnt_region
         from UP_REGION
         where REGION_ID = r_region.REGION_ID;
@@ -161,7 +161,7 @@ begin
     commit;
 end load_region;
 
---------\ ������������ �������� ������� /--------
+--------\ завантаження довідника регіонів /--------
 procedure load_district_by_region(
     v_region_id in varchar2, 
     v_manual_clob in clob default null
@@ -175,10 +175,10 @@ procedure load_district_by_region(
     v_jur number := 481;
     v_url varchar2(1000);
 begin  
-    -- ������ ����� �������
+    -- беремо токен доступу
     v_token := ukr_api.get_token(v_jur=>v_jur, v_param=>'BEARER eCom', v_dev=>v_dev);
     
-    -- ������� ����� ��� �����������
+    -- записуєм хедер для авторизації
     apex_web_service.g_request_headers.DELETE();
     apex_web_service.g_request_headers(1).name := 'Accept';
     apex_web_service.g_request_headers(1).value := 'application/json';
@@ -188,7 +188,7 @@ begin
     if v_manual_clob is not null then
         v_resp := v_manual_clob;
     else
-        -- ������ url
+        -- формуєм url
         v_url := ukr_api.get_url(
             v_type => 'main',
             v_app_name => 'address-classifier-ws',
@@ -196,20 +196,20 @@ begin
             v_dev => 'N'
         );
         
-        -- ������ �����
+        -- робимо запит
         v_resp := apex_web_service.make_rest_request(
             p_url => v_url|| '?region_id='||v_region_id, 
             p_http_method => 'GET'
         );
     end if;
     
-    -- ������� ���������
+    -- парсимо результат
     apex_json.parse(tv, v_resp);
     
-    -- ������� ������� �������� ������
+    -- зчитуємо кількість елементів масиву
     v_cnt := apex_json.get_count(p_path => 'Entries.Entry',p_values => tv);
     
-    -- ����������� ������ �����
+    -- поелементно зчитуєм масив
     for i in 1..nvl(v_cnt,0) loop
         r_district.DISTRICT_ID := apex_json.get_varchar2(p_path => 'Entries.Entry[%d].DISTRICT_ID', p0 => i, p_values => tv);
         r_district.REGION_ID := apex_json.get_varchar2(p_path => 'Entries.Entry[%d].REGION_ID', p0 => i, p_values => tv);
@@ -220,7 +220,7 @@ begin
         r_district.DISTRICT_RU := apex_json.get_varchar2(p_path => 'Entries.Entry[%d].DISTRICT_RU', p0 => i, p_values => tv);
         r_district.NEW_DISTRICT_UA := apex_json.get_varchar2(p_path => 'Entries.Entry[%d].NEW_DISTRICT_UA', p0 => i, p_values => tv);
         
-        -- ���������� �� ��������� ������ ������ 
+        -- перевіряємо на наявність такого регіону 
         select count(*) into v_cnt_district
         from UP_DISTRICT
         where DISTRICT_ID = r_district.DISTRICT_ID;
@@ -243,7 +243,7 @@ begin
     commit;
 end load_district_by_region;
 
---------\ ������������ �������� ��� /--------
+--------\ завантаження довідника міст /--------
 procedure load_city_by_district(
     v_district_id in varchar2, 
     v_manual_clob in clob default null
@@ -257,10 +257,10 @@ procedure load_city_by_district(
     v_jur number := 481;
     v_url varchar2(1000);
 begin  
-    -- ������ ����� �������
+    -- беремо токен доступу
     v_token := ukr_api.get_token(v_jur=>v_jur, v_param=>'BEARER eCom', v_dev=>v_dev);
     
-    -- ������� ����� ��� �����������
+    -- записуєм хедер для авторизації
     apex_web_service.g_request_headers.DELETE();
     apex_web_service.g_request_headers(1).name := 'Accept';
     apex_web_service.g_request_headers(1).value := 'application/json';
@@ -270,7 +270,7 @@ begin
     if v_manual_clob is not null then
         v_resp := v_manual_clob;
     else
-        -- ������ url
+        -- формуєм url
         v_url := ukr_api.get_url(
             v_type => 'main',
             v_app_name => 'address-classifier-ws',
@@ -278,20 +278,20 @@ begin
             v_dev => 'N'
         );
         
-        -- ������ �����
+        -- робимо запит
         v_resp := apex_web_service.make_rest_request(
             p_url => v_url || '?district_id='||v_district_id, 
             p_http_method => 'GET'
         );
     end if;
     
-    -- ������� ���������
+    -- парсимо результат
     apex_json.parse(tv, v_resp);
     
-    -- ������� ������� �������� ������
+    -- зчитуємо кількість елементів масиву
     v_cnt := apex_json.get_count(p_path => 'Entries.Entry',p_values => tv);
     
-    -- ����������� ������ �����
+    -- поелементно зчитуєм масив
     for i in 1..nvl(v_cnt,0) loop
         r_city.CITY_ID := apex_json.get_varchar2(p_path => 'Entries.Entry[%d].CITY_ID', p0 => i, p_values => tv);
         r_city.CITY_UA := apex_json.get_varchar2(p_path => 'Entries.Entry[%d].CITY_UA', p0 => i, p_values => tv);
@@ -316,7 +316,7 @@ begin
         r_city.DISTRICT_ID := apex_json.get_varchar2(p_path => 'Entries.Entry[%d].DISTRICT_ID', p0 => i, p_values => tv);
         r_city.REGION_ID := apex_json.get_varchar2(p_path => 'Entries.Entry[%d].REGION_ID', p0 => i, p_values => tv); 
         
-        -- ���������� �� ��������� ������ ���� 
+        -- перевіряємо на наявність такого міста 
         select count(*) into v_cnt_city
         from UP_CITY
         where CITY_ID = r_city.CITY_ID;
@@ -353,7 +353,7 @@ begin
     commit;
 end load_city_by_district;
 
---------\ ������������ �������� ������ /--------
+--------\ завантаження довідника вулиць /--------
 procedure load_street_by_city(
     v_city_id in varchar2, 
     v_manual_clob in clob default null
@@ -367,10 +367,10 @@ procedure load_street_by_city(
     v_jur number := 481;
     v_url varchar2(1000);
 begin  
-    -- ������ ����� �������
+    -- беремо токен доступу
     v_token := ukr_api.get_token(v_jur=>v_jur, v_param=>'BEARER eCom', v_dev=>v_dev);
     
-    -- ������� ����� ��� �����������
+    -- записуєм хедер для авторизації
     apex_web_service.g_request_headers.DELETE();
     apex_web_service.g_request_headers(1).name := 'Accept';
     apex_web_service.g_request_headers(1).value := 'application/json';
@@ -380,7 +380,7 @@ begin
     if v_manual_clob is not null then
         v_resp := v_manual_clob;
     else
-        -- ������ url
+        -- формуєм url
         v_url := ukr_api.get_url(
             v_type => 'main',
             v_app_name => 'address-classifier-ws',
@@ -388,20 +388,20 @@ begin
             v_dev => 'N'
         );
         
-        -- ������ �����
+        -- робимо запит
         v_resp := apex_web_service.make_rest_request(
             p_url => v_url || '?city_id='||v_city_id, 
             p_http_method => 'GET'
         );
     end if;
     
-    -- ������� ���������
+    -- парсимо результат
     apex_json.parse(tv, v_resp);
     
-    -- ������� ������� �������� ������
+    -- зчитуємо кількість елементів масиву
     v_cnt := apex_json.get_count(p_path => 'Entries.Entry',p_values => tv);
     
-    -- ����������� ������ �����
+    -- поелементно зчитуєм масив
     for i in 1..nvl(v_cnt,0) loop
         r_street.STREET_ID := apex_json.get_varchar2(p_path => 'Entries.Entry[%d].STREET_ID', p0 => i, p_values => tv);
         r_street.REGION_ID := apex_json.get_varchar2(p_path => 'Entries.Entry[%d].REGION_ID', p0 => i, p_values => tv);
@@ -420,7 +420,7 @@ begin
         r_street.CITY_ID := apex_json.get_varchar2(p_path => 'Entries.Entry[%d].CITY_ID', p0 => i, p_values => tv);
         r_street.STREET_RU := apex_json.get_varchar2(p_path => 'Entries.Entry[%d].STREET_RU', p0 => i, p_values => tv);
 
-        -- ���������� �� ��������� ���� ������ 
+        -- перевіряємо на наявність такої вулиці 
         select count(*) into v_cnt_street
         from UP_STREET
         where STREET_ID = r_street.STREET_ID;
@@ -451,7 +451,7 @@ begin
     commit;
 end load_street_by_city;
 
---------\ ������������ �������� ������� /--------
+--------\ завантаження довідника відділень /--------
 procedure load_branch_by_city(
     v_city_id in varchar2, 
     v_manual_clob in clob default null
@@ -465,10 +465,10 @@ procedure load_branch_by_city(
     v_jur number := 481;
     v_url varchar2(1000);
 begin  
-    -- ������ ����� �������
+    -- беремо токен доступу
     v_token := ukr_api.get_token(v_jur=>v_jur, v_param=>'BEARER eCom', v_dev=>v_dev);
     
-    -- ������� ����� ��� �����������
+    -- записуєм хедер для авторизації
     apex_web_service.g_request_headers.DELETE();
     apex_web_service.g_request_headers(1).name := 'Accept';
     apex_web_service.g_request_headers(1).value := 'application/json';
@@ -478,7 +478,7 @@ begin
     if v_manual_clob is not null then
         v_resp := v_manual_clob;
     else
-        -- ������ url
+        -- формуєм url
         v_url := ukr_api.get_url(
             v_type => 'main',
             v_app_name => 'address-classifier-ws',
@@ -486,20 +486,20 @@ begin
             v_dev => 'N'
         );
         
-        -- ������ �����
+        -- робимо запит
         v_resp := apex_web_service.make_rest_request(
             p_url => v_url || '?district_id='||v_city_id, 
             p_http_method => 'GET'
         );
     end if;
     
-    -- ������� ���������
+    -- парсимо результат
     apex_json.parse(tv, v_resp);
     
-    -- ������� ������� �������� ������
+    -- зчитуємо кількість елементів масиву
     v_cnt := apex_json.get_count(p_path => 'Entries.Entry',p_values => tv);
     
-    -- ����������� ������ �����
+    -- поелементно зчитуєм масив
     for i in 1..nvl(v_cnt,0) loop
         r_branch.ID := apex_json.get_varchar2(p_path => 'Entries.Entry[%d].ID', p0 => i, p_values => tv);
         r_branch.DISTRICT_ID := apex_json.get_varchar2(p_path => 'Entries.Entry[%d].DISTRICT_ID', p0 => i, p_values => tv);
@@ -532,7 +532,7 @@ begin
         r_branch.CITY_ID := apex_json.get_varchar2(p_path => 'Entries.Entry[%d].CITY_ID', p0 => i, p_values => tv);
 
 
-        -- ���������� �� ��������� ������ ��������
+        -- перевіряємо на наявність такого відділення
         select count(*) into v_cnt_branch
         from UP_BRANCH
         where ID = r_branch.ID;
@@ -576,7 +576,7 @@ begin
     commit;
 end load_branch_by_city;
 
---------\ ������������ ������� �������� ������� /--------
+--------\ завантаження повного довідника регіонів /--------
 procedure load_district as
     cursor cur1 is
         select region_id from up_region;
@@ -586,7 +586,7 @@ begin
     end loop;
 end load_district;
 
---------\ ������������ ������� �������� ��� /--------
+--------\ завантаження повного довідника міст /--------
 procedure load_city as
     cursor cur1 is
         select district_id from up_district;
@@ -596,7 +596,7 @@ begin
     end loop;
 end load_city;
 
---------\ ������������ ������� �������� ������ /--------
+--------\ завантаження повного довідника вулиць /--------
 procedure load_street as
     cursor cur1 is
         select city_id from up_city;
@@ -606,7 +606,7 @@ begin
     end loop;
 end load_street;
 
---------\ ������������ ������� �������� ������� /--------
+--------\ завантаження повного довідника відділень /--------
 procedure load_branch as
     cursor cur1 is
         select city_id from up_city;
@@ -616,7 +616,7 @@ begin
     end loop;
 end load_branch;
 
---------\ ��������� ������ ������� �� ������ /--------
+--------\ отримання списку будинків по вулиці /--------
 function get_house_list(
     v_street_id in varchar2
 ) RETURN list_t pipelined as
@@ -629,17 +629,17 @@ function get_house_list(
     v_url varchar2(1000);
 begin
     
-    -- ������ ����� �������
+    -- беремо токен доступу
     v_token := ukr_api.get_token(v_jur=>v_jur, v_param=>'BEARER eCom', v_dev=>v_dev);
     
-    -- ������� ����� ��� �����������
+    -- записуєм хедер для авторизації
     apex_web_service.g_request_headers.DELETE();
     apex_web_service.g_request_headers(1).name := 'Accept';
     apex_web_service.g_request_headers(1).value := 'application/json';
     apex_web_service.g_request_headers(2).name := 'Authorization';
     apex_web_service.g_request_headers(2).value := 'Bearer '||v_token;
     
-    -- ������ url
+    -- формуєм url
     v_url := ukr_api.get_url(
         v_type => 'main',
         v_app_name => 'address-classifier-ws',
@@ -647,19 +647,19 @@ begin
         v_dev => 'N'
     );
     
-    -- ������ �����
+    -- робимо запит
     v_resp := apex_web_service.make_rest_request(
         p_url => v_url || '?street_id='||v_street_id, 
         p_http_method => 'GET'
     );
     
-    -- ������� ���������
+    -- парсимо результат
     apex_json.parse(tv,v_resp);
     
-    -- ������� ������� �������� ������
+    -- зчитуємо кількість елементів масиву
     v_cnt := apex_json.get_count(p_path => 'Entries.Entry',p_values => tv);
     
-    -- ����������� ������ �����
+    -- поелементно зчитуєм масив
     for i in 1..nvl(v_cnt,0) loop
         return_row.disp := apex_json.get_varchar2(p_path => 'Entries.Entry[%d].HOUSENUMBER_UA', p0 => i, p_values => tv);
         return_row.val := apex_json.get_varchar2(p_path => 'Entries.Entry[%d].HOUSENUMBER_UA', p0 => i, p_values => tv);
@@ -669,7 +669,7 @@ exception when others then
     null;    
 end get_house_list;
 
---------\ ��������� ������� �� ������ �� ������� /--------
+--------\ отримання індексу по вулиці та будинку /--------
 function get_index(
     v_street_id in varchar2, 
     v_housenumber in varchar2
@@ -683,17 +683,17 @@ function get_index(
     v_jur number := 481;
     v_url varchar2(1000);
 begin
-    -- ������ ����� �������
+    -- беремо токен доступу
     v_token := ukr_api.get_token(v_jur=>v_jur, v_param=>'BEARER eCom', v_dev=>v_dev);
     
-    -- ������� ����� ��� �����������
+    -- записуєм хедер для авторизації
     apex_web_service.g_request_headers.DELETE();
     apex_web_service.g_request_headers(1).name := 'Accept';
     apex_web_service.g_request_headers(1).value := 'application/json';
     apex_web_service.g_request_headers(2).name := 'Authorization';
     apex_web_service.g_request_headers(2).value := 'Bearer '||v_token;
     
-    -- ������ url
+    -- формуєм url
     v_url := ukr_api.get_url(
         v_type => 'main',
         v_app_name => 'address-classifier-ws',
@@ -701,7 +701,7 @@ begin
         v_dev => 'N'
     );
     
-    -- ������ �����
+    -- робимо запит
     v_resp := apex_web_service.make_rest_request(
         p_url => v_url || '?street_id='||v_street_id||'&housenumber='||utl_url.escape(v_housenumber, true, 'utf-8'), 
         p_http_method => 'GET'
@@ -711,13 +711,13 @@ begin
     values(sysdate, v_url || '?street_id='||v_street_id||'&housenumber='||v_housenumber,  v_resp, 'get_index');
     commit;
     
-    -- ������� ���������
+    -- парсимо результат
     apex_json.parse(tv,v_resp);
     
-    -- ������� ������� �������� ������
+    -- зчитуємо кількість елементів масиву
     v_cnt := apex_json.get_count(p_path => 'Entries.Entry',p_values => tv);
     
-    -- ����������� ������ �����
+    -- поелементно зчитуєм масив
     for i in 1..nvl(v_cnt,0) loop
         v_postcode := apex_json.get_varchar2(p_path => 'Entries.Entry[%d].POSTCODE', p0 => i, p_values => tv);
         return v_postcode;
@@ -726,7 +726,7 @@ exception when others then
     null;
 end get_index;
 
---------\ �������� ������ �������� /--------
+--------\ створити адресу доставки /--------
 function create_adresses (
     v_jur number,
     v_region_id varchar2, 
@@ -751,10 +751,10 @@ function create_adresses (
     v_code varchar2(100);
     v_msg_err varchar2(1000);
 begin
-    -- ������ ����� �������
+    -- беремо токен доступу
     v_token := ukr_api.get_token(v_jur=>v_jur, v_param=>'BEARER eCom', v_dev=>v_dev);
     
-    -- ������� ����� ��� �����������
+    -- записуєм хедер для авторизації
     apex_web_service.g_request_headers.DELETE();
     apex_web_service.g_request_headers(1).name := 'Content-Type';
     apex_web_service.g_request_headers(1).value := 'application/json';
@@ -792,7 +792,7 @@ begin
     v_req := apex_json.get_clob_output;
     apex_json.free_output;
     
-    -- ������ url
+    -- формуєм url
     v_url := ukr_api.get_url(
         v_type => 'main',
         v_app_name => 'ecom/0.0.1',
@@ -800,7 +800,7 @@ begin
         v_dev => v_dev
     );
     
-    -- ������ �����
+    -- робимо запит
     v_resp := apex_web_service.make_rest_request(
         p_url => v_url, 
         p_http_method => 'POST',
@@ -809,7 +809,7 @@ begin
     insert into up_logs(crt, url, req, resp, enty)
     values(sysdate, v_url, v_req, v_resp, 'create_adresses');
     commit;
-    -- ������� ���������
+    -- парсимо результат
     apex_json.parse(tv, v_resp);
     
     v_code := apex_json.get_varchar2(p_path => 'code', p_values => tv);
@@ -837,7 +837,7 @@ begin
     return r_adresses.ID;
 end create_adresses;
 
---------\ �������� ���������� /--------
+--------\ створити відправника /--------
 procedure create_sender (
     v_jur number,
     v_name varchar2,
@@ -860,10 +860,10 @@ procedure create_sender (
     v_code varchar2(100);
     v_msg_err varchar2(1000);
 begin
-    -- ������ ����� �������
+    -- беремо токен доступу
     v_token := ukr_api.get_token(v_jur=>v_jur, v_param=>'BEARER eCom', v_dev=>v_dev);
     
-    -- ������� ����� ��� �����������
+    -- записуєм хедер для авторизації
     apex_web_service.g_request_headers.DELETE();
     apex_web_service.g_request_headers(1).name := 'Content-Type';
     apex_web_service.g_request_headers(1).value := 'application/json';
@@ -873,7 +873,7 @@ begin
     apex_json.initialize_clob_output;
     apex_json.open_object;       
         apex_json.write('contactPersonName', v_last_name||' '||v_first_name||' '||v_middle_name/*||' '||v_name*/);
-        select replace(replace(upper(name),'"',''),'�','') into v_jur_name
+        select replace(replace(upper(name),'"',''),'”','') into v_jur_name
         from jur
         where id = v_jur;
         apex_json.write('name', v_jur_name);
@@ -886,7 +886,7 @@ begin
     v_req := apex_json.get_clob_output;
     apex_json.free_output;
     
-    -- ������ url
+    -- формуєм url
     v_url := ukr_api.get_url(
         v_type => 'main',
         v_app_name => 'ecom/0.0.1',
@@ -895,7 +895,7 @@ begin
         v_dev => v_dev
     );
     
-    -- ������ �����
+    -- робимо запит
     v_resp := apex_web_service.make_rest_request(
         p_url => v_url, 
         p_http_method => 'POST',
@@ -905,7 +905,7 @@ begin
     insert into up_logs(crt, url, req, resp, enty)
     values(sysdate, v_url, v_req, v_resp, 'create_sender');
     commit;
-    -- ������� ���������
+    -- парсимо результат
     apex_json.parse(tv, v_resp);
     
     v_code := apex_json.get_varchar2(p_path => 'code', p_values => tv);
@@ -955,10 +955,10 @@ procedure edit_sender (
     v_code varchar2(100);
     v_msg_err varchar2(1000);
 begin
-    -- ������ ����� �������
+    -- беремо токен доступу
     v_token := ukr_api.get_token(v_jur=>v_jur, v_param=>'BEARER eCom', v_dev=>v_dev);
     
-    -- ������� ����� ��� �����������
+    -- записуєм хедер для авторизації
     apex_web_service.g_request_headers.DELETE();
     apex_web_service.g_request_headers(1).name := 'Content-Type';
     apex_web_service.g_request_headers(1).value := 'application/json';
@@ -967,7 +967,7 @@ begin
     
     apex_json.initialize_clob_output;
     apex_json.open_object;       
-        select replace(replace(upper(name),'"',''),'�','') into v_jur_name
+        select replace(replace(upper(name),'"',''),'”','') into v_jur_name
         from jur
         where id = v_jur;
         apex_json.write('contactPersonName', v_last_name||' '||v_first_name||' '||v_middle_name/*||' '||v_name*/);
@@ -986,7 +986,7 @@ begin
     v_req := apex_json.get_clob_output;
     apex_json.free_output;
     
-    -- ������ url
+    -- формуєм url
     v_url := ukr_api.get_url(
         v_type => 'main',
         v_app_name => 'ecom/0.0.1',
@@ -995,7 +995,7 @@ begin
         v_dev => v_dev
     );
     
-    -- ������ �����
+    -- робимо запит
 
     v_resp := apex_web_service.make_rest_request(
         p_url => v_url, 
@@ -1006,7 +1006,7 @@ begin
     insert into up_logs(crt, url, req, resp, enty)
     values(sysdate, v_url, v_req, v_resp, 'edit_sender');
     commit;
-    -- ������� ���������
+    -- парсимо результат
     apex_json.parse(tv, v_resp);
     
     v_code := apex_json.get_varchar2(p_path => 'code', p_values => tv);
@@ -1047,7 +1047,7 @@ begin
     commit;
 end edit_sender;
 
---------\ �������� ���������� /--------
+--------\ створити відправника /--------
 function create_recepient (
     v_jur number,
     v_first_name varchar2,
@@ -1067,10 +1067,10 @@ function create_recepient (
     v_code varchar2(100);
     v_msg_err varchar2(1000);
 begin
-    -- ������ ����� �������
+    -- беремо токен доступу
     v_token := ukr_api.get_token(v_jur=>v_jur, v_param=>'BEARER eCom', v_dev=>v_dev);
     
-    -- ������� ����� ��� �����������
+    -- записуєм хедер для авторизації
     apex_web_service.g_request_headers.DELETE();
     apex_web_service.g_request_headers(1).name := 'Content-Type';
     apex_web_service.g_request_headers(1).value := 'application/json';
@@ -1090,7 +1090,7 @@ begin
     v_req := apex_json.get_clob_output;
     apex_json.free_output;
     
-    -- ������ url
+    -- формуєм url
     v_url := ukr_api.get_url(
         v_type => 'main',
         v_app_name => 'ecom/0.0.1',
@@ -1099,7 +1099,7 @@ begin
         v_dev => v_dev
     );
     
-    -- ������ �����
+    -- робимо запит
     v_resp := apex_web_service.make_rest_request(
         p_url => v_url, 
         p_http_method => 'POST',
@@ -1110,7 +1110,7 @@ begin
     values(sysdate, v_url, v_req, v_resp, 'create_recepient');
     commit;
     
-    -- ������� ���������
+    -- парсимо результат
     apex_json.parse(tv, v_resp);
     
     v_code := apex_json.get_varchar2(p_path => 'code', p_values => tv);
@@ -1170,10 +1170,10 @@ begin
     
     select sjur into v_jur from saletp
     where ordh = r_parcel.ordh and chid = r_parcel.chid and trpoint = r_parcel.trpoint;
-    -- ������ ����� �������
+    -- беремо токен доступу
     v_token := ukr_api.get_token(v_jur=>v_jur, v_param=>'BEARER eCom', v_dev=>v_dev);
     
-    -- ������� ����� ��� �����������
+    -- записуєм хедер для авторизації
     apex_web_service.g_request_headers.DELETE();
     apex_web_service.g_request_headers(1).name := 'Content-Type';
     apex_web_service.g_request_headers(1).value := 'application/json';
@@ -1235,12 +1235,12 @@ begin
         apex_json.write('sms', true);
        
         --apex_json.write('packedBySender', true);
-        apex_json.write('checkOnDelivery', true); -- �������� ��� ����� �� �������
-        apex_json.write('fitting�llowed', true); -- �������� ��� ����� �� �������
+        apex_json.write('checkOnDelivery', true); -- запитати про дозвіл на примірку
+        apex_json.write('fittingАllowed', true); -- запитати про дозвіл на примірку
     apex_json.close_object;   
     v_req := apex_json.get_clob_output;
     apex_json.free_output;
-    -- ������ url
+    -- формуєм url
     v_url := ukr_api.get_url(
         v_type => 'main',
         v_app_name => 'ecom/0.0.1',
@@ -1249,7 +1249,7 @@ begin
         v_dev => v_dev
     );
     
-    -- ������ �����
+    -- робимо запит
     v_resp := apex_web_service.make_rest_request(
         p_url => v_url, 
         p_http_method => 'POST',
@@ -1260,7 +1260,7 @@ begin
     values(sysdate, v_url, v_req, v_resp, 'create_parcel');
     commit;
     
-    -- ������� ���������
+    -- парсимо результат
     apex_json.parse(tv, v_resp);
     
     v_code := apex_json.get_varchar2(p_path => 'code', p_values => tv);
@@ -1349,17 +1349,17 @@ begin
         );
     end if;
     
-    -- ������ ����� �������
+    -- беремо токен доступу
     v_token := ukr_api.get_token(v_jur=>v_jur, v_param=>'BEARER eCom', v_dev=>v_dev);
     
-    -- ������� ����� ��� �����������
+    -- записуєм хедер для авторизації
     apex_web_service.g_request_headers.DELETE();
     apex_web_service.g_request_headers(1).name := 'Content-Type';
     apex_web_service.g_request_headers(1).value := 'application/json';
     apex_web_service.g_request_headers(2).name := 'Authorization';
     apex_web_service.g_request_headers(2).value := 'Bearer '||v_token;
 
-    -- ������ url
+    -- формуєм url
     v_url := ukr_api.get_url(
         v_type => 'main',
         v_app_name => 'ecom/0.0.1',
@@ -1368,7 +1368,7 @@ begin
         v_dev => v_dev
     );
     
-    -- ������ �����
+    -- робимо запит
     v_resp := apex_web_service.make_rest_request(
         p_url => v_url, 
         p_http_method => 'DELETE',
@@ -1379,7 +1379,7 @@ begin
     values(sysdate, v_url, v_req, v_resp, 'delete_parcel');
     commit;
     
-    -- ������� ���������
+    -- парсимо результат
     apex_json.parse(tv, v_resp);
     
     v_code := apex_json.get_varchar2(p_path => 'code', p_values => tv);
@@ -1421,7 +1421,7 @@ procedure create_group(
 begin
     v_token := ukr_api.get_token(v_jur=>v_jur, v_param=>'BEARER eCom', v_dev=>v_dev);
     
-    -- ������� ����� ��� �����������
+    -- записуєм хедер для авторизації
     apex_web_service.g_request_headers.DELETE();
     apex_web_service.g_request_headers(1).name := 'Content-Type';
     apex_web_service.g_request_headers(1).value := 'application/json';
@@ -1437,7 +1437,7 @@ begin
     v_req := apex_json.get_clob_output;
     apex_json.free_output;
     
-    -- ������ url
+    -- формуєм url
     v_url := ukr_api.get_url(
         v_type => 'main',
         v_app_name => 'ecom/0.0.1',
@@ -1446,7 +1446,7 @@ begin
         v_dev => v_dev
     );
     
-    -- ������ �����
+    -- робимо запит
     v_resp := apex_web_service.make_rest_request(
         p_url => v_url, 
         p_http_method => 'POST',
@@ -1507,7 +1507,7 @@ procedure add_to_group(
 begin
     v_token := ukr_api.get_token(v_jur=>v_jur, v_param=>'BEARER eCom', v_dev=>v_dev);
     
-    -- ������� ����� ��� �����������
+    -- записуєм хедер для авторизації
     apex_web_service.g_request_headers.DELETE();
     apex_web_service.g_request_headers(1).name := 'Content-Type';
     apex_web_service.g_request_headers(1).value := 'application/json';
@@ -1523,7 +1523,7 @@ begin
     v_req := apex_json.get_clob_output;
     apex_json.free_output;
        
-    -- ������ url
+    -- формуєм url
     v_url := ukr_api.get_url(
         v_type => 'main',
         v_app_name => 'ecom/0.0.1',
@@ -1532,7 +1532,7 @@ begin
         v_dev => v_dev
     );
     
-    -- ������ �����
+    -- робимо запит
     v_resp := apex_web_service.make_rest_request(
         p_url => v_url, 
         p_http_method => 'PUT',
@@ -1583,12 +1583,12 @@ procedure delete_from_group(
 begin
     v_token := ukr_api.get_token(v_jur=>v_jur, v_param=>'BEARER eCom', v_dev=>v_dev);
     
-    -- ������� ����� ��� �����������
+    -- записуєм хедер для авторизації
     apex_web_service.g_request_headers.DELETE();
     apex_web_service.g_request_headers(1).name := 'Authorization';
     apex_web_service.g_request_headers(1).value := 'Bearer '||v_token;
        
-    -- ������ url
+    -- формуєм url
     v_url := ukr_api.get_url(
         v_type => 'main',
         v_app_name => 'ecom/0.0.1',
@@ -1597,7 +1597,7 @@ begin
         v_dev => v_dev
     );
     
-    -- ������ �����
+    -- робимо запит
     v_resp := apex_web_service.make_rest_request(
         p_url => v_url, 
         p_http_method => 'DELETE',
@@ -1646,7 +1646,7 @@ function create_courier_order(
 begin
     v_token := ukr_api.get_token(v_jur=>v_jur, v_param=>'BEARER eCom', v_dev=>v_dev);
     
-    -- ������� ����� ��� �����������
+    -- записуєм хедер для авторизації
     apex_web_service.g_request_headers.DELETE();
     apex_web_service.g_request_headers(1).name := 'Content-Type';
     apex_web_service.g_request_headers(1).value := 'application/json';
@@ -1683,7 +1683,7 @@ begin
     v_req := apex_json.get_clob_output;
     apex_json.free_output;
     
-    -- ������ url
+    -- формуєм url
     v_url := ukr_api.get_url(
         v_type => 'main',
         v_app_name => 'ecom/0.0.1',
@@ -1692,7 +1692,7 @@ begin
         v_dev => v_dev
     );
     
-    -- ������ �����
+    -- робимо запит
     v_resp := apex_web_service.make_rest_request(
         p_url => v_url, 
         p_http_method => 'POST',
@@ -1769,14 +1769,14 @@ procedure get_parcel_status(
 begin
     v_token := ukr_api.get_token(v_jur=>v_jur, v_param=>'BEARER StatusTracking', v_dev=>'N');
     
-    -- ������� ����� ��� �����������
+    -- записуєм хедер для авторизації
     apex_web_service.g_request_headers.DELETE();
     apex_web_service.g_request_headers(1).name := 'Content-Type';
     apex_web_service.g_request_headers(1).value := 'application/json';
     apex_web_service.g_request_headers(2).name := 'Authorization';
     apex_web_service.g_request_headers(2).value := 'Bearer '||v_token;
     
-    -- ������ url
+    -- формуєм url
     v_url := ukr_api.get_url(
         v_type => 'main',
         v_app_name => 'status-tracking/0.0.1',
@@ -1792,7 +1792,7 @@ begin
             v_req := c1.barcode;
         end if;
         
-        -- ������ �����
+        -- робимо запит
         v_resp := apex_web_service.make_rest_request(
             p_url => v_url, 
             p_http_method => 'POST',
